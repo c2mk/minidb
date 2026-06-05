@@ -8,8 +8,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(dbms
     src/main.cpp
     src/shell.cpp
-    src/command.cpp
     src/dispatcher.cpp
+    src/parser/parser.cpp
+    src/parser/tokenizer.cpp
+    # main-test.cpp
 )
 
 target_include_directories(dbms PRIVATE include)

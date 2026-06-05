@@ -1,6 +1,7 @@
 #include "shell.hpp"
-#include "command.hpp"
 #include "dispatcher.hpp"
+#include "parser/tokenizer.hpp"
+#include "parser/parser.hpp"
 
 #include <iostream>
 #include <string>
@@ -21,12 +22,16 @@ void Shell::run()
     {
       continue;
     }
-    Command cmd = classifyCommand(input);
-    if (cmd.type == CommandType::Quit)
+    try
     {
-      break;
+      Tokenizer tokenizer(input);
+      Parser parser(tokenizer.tokenize());
+      dispatcher.dispatch(parser.parse());
     }
-    dispatcher.dispatchCommand(cmd);
+    catch (const std::exception &err)
+    {
+      std::cout << "Error: " << err.what() << '\n';
+    }
   }
   std::cout << "Bye!\n";
 }

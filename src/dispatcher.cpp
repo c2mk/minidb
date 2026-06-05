@@ -1,35 +1,47 @@
 #include "dispatcher.hpp"
 
 #include <iostream>
-#include <string>
 
-void Dispatcher::dispatchCommand(const Command &cmd)
+void Dispatcher::dispatch(const Statement &stmt)
 {
-  // notice how switch works with enum even though enum cant be implicitly cast
-  switch (cmd.type)
+  if (std::holds_alternative<SelectStatement>(stmt))
   {
-  case CommandType::Help:
-    std::cout << "Help: CREATE, INSERT, SELECT, DELETE, EXIT\n";
-    break;
-
-  case CommandType::CreateTable:
-    std::cout << "CREATE TABLE handler called\n";
-    break;
-
-  case CommandType::Insert:
-    std::cout << "INSERT handler called\n";
-    break;
-
-  case CommandType::Select:
-    std::cout << "SELECT handler called\n";
-    break;
-
-  case CommandType::Delete:
-    std::cout << "DELETE handler called\n";
-    break;
-
-  default:
-    std::cout << "Unknown command\n";
-    break;
+    handleSelect(std::get<SelectStatement>(stmt));
   }
+  else if (std::holds_alternative<InsertStatement>(stmt))
+  {
+    handleInsert(std::get<InsertStatement>(stmt));
+  }
+  else if (std::holds_alternative<CreateTableStatement>(stmt))
+  {
+    handleCreateTable(std::get<CreateTableStatement>(stmt));
+  }
+  else if (std::holds_alternative<DeleteStatement>(stmt))
+  {
+    handleDelete(std::get<DeleteStatement>(stmt));
+  }
+}
+
+void Dispatcher::handleSelect(const SelectStatement &stmt)
+{
+  std::cout << "SELECT statement\n";
+  std::cout << stmt.table << '\n';
+  for (auto column : stmt.columns)
+    std::cout << column << " ";
+  std::cout << '\n';
+}
+void Dispatcher::handleDelete(const DeleteStatement &stmt)
+{
+  std::cout << "DELETE statement\n";
+  std::cout << stmt.table << '\n';
+}
+void Dispatcher::handleInsert(const InsertStatement &stmt)
+{
+  std::cout << "INSERT statement\n";
+  std::cout << stmt.table << '\n';
+}
+void Dispatcher::handleCreateTable(const CreateTableStatement &stmt)
+{
+  std::cout << "CREATE TABLE statement\n";
+  std::cout << stmt.table << '\n';
 }
