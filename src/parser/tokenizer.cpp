@@ -22,7 +22,7 @@ static const std::unordered_map<std::string, TokenType> keywords = {
 static std::string toLower(std::string s)
 {
   // s intentionally not passed by reference
-  std::transform(s.begin(), s.end(), s.begin(), ::toLower);
+  std::transform(s.begin(), s.end(), s.begin(), ::tolower);
   return s;
 }
 

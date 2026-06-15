@@ -9,6 +9,9 @@ add_executable(dbms
     src/main.cpp
     src/shell.cpp
     src/dispatcher.cpp
+    src/catalog.cpp
+    src/executor.cpp
+    src/result.cpp
     src/parser/parser.cpp
     src/parser/tokenizer.cpp
     src/storage/types.cpp
