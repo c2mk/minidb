@@ -142,6 +142,7 @@ SelectStatement Parser::parseSelect()
         rhs};
     // std::cout << stmt.table << '\n';
   }
+  // parser stops here, but maybe there are still some invalid tokens left which would mean we have invalid Statement
   return stmt;
 }
 

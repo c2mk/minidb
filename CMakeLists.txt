@@ -11,8 +11,10 @@ add_executable(dbms
     src/dispatcher.cpp
     src/parser/parser.cpp
     src/parser/tokenizer.cpp
+    src/storage/types.cpp
+    src/storage/table.cpp
     # main-test.cpp
 )
 
-target_include_directories(dbms PRIVATE include)
+target_include_directories(dbms PUBLIC include)
 # cmake -G "MinGW Makefiles" -B build
