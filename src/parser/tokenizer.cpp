@@ -33,8 +33,8 @@ char Tokenizer::peek() const
   if (pos_ < input_.size())
     return input_[pos_];
   return '\0';
+  // will do this
   // throw std::runtime_error("peek() out of bounds");
-  // stricter, can be annoying
 }
 
 char Tokenizer::advance()
@@ -49,6 +49,7 @@ char Tokenizer::advance()
 
 void Tokenizer::skipWhitespace()
 {
+  // why static cast, are there other types of casts
   while (pos_ < input_.size() && std::isspace(static_cast<unsigned char>(input_[pos_])))
   {
     pos_++;
@@ -85,8 +86,8 @@ std::vector<Token> Tokenizer::tokenize()
     else
       tokens.push_back(makeSymbol());
   }
-
-  tokens.push_back(Token{TokenType::EndOfFile, ""});
+  // use designated initializers
+  tokens.push_back(Token{.type = TokenType::EndOfFile, .lexeme = ""});
   return tokens;
 }
 
@@ -163,7 +164,6 @@ Token Tokenizer::makeIdentifierOrKeyword()
         .lexeme = lexeme};
   }
 
-  // identifier logic later
   return Token{
       .type = TokenType::Identifier,
       .lexeme = lexeme};

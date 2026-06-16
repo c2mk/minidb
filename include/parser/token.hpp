@@ -39,6 +39,7 @@ enum class TokenType
   EndOfFile,
   Unknown
 };
+
 struct Token
 {
   TokenType type;

@@ -30,16 +30,19 @@ void Dispatcher::handleSelect(const SelectStatement &stmt)
     std::cout << column << " ";
   std::cout << '\n';
 }
+
 void Dispatcher::handleDelete(const DeleteStatement &stmt)
 {
   std::cout << "DELETE statement\n";
   std::cout << stmt.table << '\n';
 }
+
 void Dispatcher::handleInsert(const InsertStatement &stmt)
 {
   std::cout << "INSERT statement\n";
   std::cout << stmt.table << '\n';
 }
+
 void Dispatcher::handleCreateTable(const CreateTableStatement &stmt)
 {
   std::cout << "CREATE TABLE statement\n";

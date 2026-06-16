@@ -2,18 +2,22 @@
 
 QueryResult QueryResult::ok(std::string msg)
 {
-  // aggregate initialization
-  return QueryResult{true, std::move(msg), {}, {}};
+  return {.success = true, .message = std::move(msg)};
+  // unmentioned fields (columnNames, rows) are default-initialized to empty
 }
 
 QueryResult QueryResult::error(std::string msg)
 {
-  return QueryResult{false, std::move(msg), {}, {}};
+  return {.success = false, .message = std::move(msg)};
 }
 
 QueryResult QueryResult::table(std::vector<std::string> columnNames,
                                std::vector<Row> rows,
                                std::string msg)
 {
-  return QueryResult{true, std::move(msg), std::move(columnNames), std::move(rows)};
+  return {
+      .success = true,
+      .message = std::move(msg),
+      .columnNames = std::move(columnNames),
+      .rows = std::move(rows)};
 }
