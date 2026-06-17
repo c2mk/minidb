@@ -248,11 +248,29 @@ DeleteStatement Parser::parseDelete()
 
     Token right = advance();
 
+    std::variant<IntLiteral, StringLiteral, Column> rhs;
+
+    if (right.type == TokenType::Integer)
+    {
+      rhs = IntLiteral{std::stoi(right.lexeme)};
+    }
+    else if (right.type == TokenType::String)
+    {
+      rhs = StringLiteral{right.lexeme};
+    }
+    else if (right.type == TokenType::Identifier)
+    {
+      rhs = Column{right.lexeme};
+    }
+    else
+    {
+      throw std::runtime_error("Invalid RHS in WHERE");
+    }
+
     stmt.where = BinaryExp{
         Column{left.lexeme},
         op.lexeme,
-        StringLiteral{right.lexeme} // same simplification as SELECT
-    };
+        rhs};
   }
 
   return stmt;
