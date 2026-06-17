@@ -8,7 +8,8 @@ class Executor
 {
 public:
   explicit Executor(Catalog &catalog);
-  QueryResult execute(const Statement &stmt) {};
+
+  QueryResult execute(const Statement &stmt);
 
 private:
   QueryResult executeCreate(const CreateTableStatement &stmt);

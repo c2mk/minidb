@@ -1,50 +1,65 @@
 #include "dispatcher.hpp"
 
 #include <iostream>
+#include <variant>
+
+namespace
+{
+  void printValue(const Value &value)
+  {
+    if (std::holds_alternative<int>(value))
+    {
+      std::cout << std::get<int>(value);
+    }
+    else if (std::holds_alternative<std::string>(value))
+    {
+      std::cout << std::get<std::string>(value);
+    }
+  }
+}
+
+Dispatcher::Dispatcher() : executor_(catalog_) {}
 
 void Dispatcher::dispatch(const Statement &stmt)
 {
-  if (std::holds_alternative<SelectStatement>(stmt))
-  {
-    handleSelect(std::get<SelectStatement>(stmt));
-  }
-  else if (std::holds_alternative<InsertStatement>(stmt))
-  {
-    handleInsert(std::get<InsertStatement>(stmt));
-  }
-  else if (std::holds_alternative<CreateTableStatement>(stmt))
-  {
-    handleCreateTable(std::get<CreateTableStatement>(stmt));
-  }
-  else if (std::holds_alternative<DeleteStatement>(stmt))
-  {
-    handleDelete(std::get<DeleteStatement>(stmt));
-  }
-}
+  auto result = executor_.execute(stmt);
 
-void Dispatcher::handleSelect(const SelectStatement &stmt)
-{
-  std::cout << "SELECT statement\n";
-  std::cout << stmt.table << '\n';
-  for (auto column : stmt.columns)
-    std::cout << column << " ";
+  if (!result.success)
+  {
+    std::cout << result.message << '\n';
+    return;
+  }
+
+  if (result.columnNames.empty())
+  {
+    std::cout << result.message << '\n';
+    return;
+  }
+
+  for (size_t i = 0; i < result.columnNames.size(); ++i)
+  {
+    std::cout << result.columnNames[i];
+
+    if (i + 1 < result.columnNames.size())
+    {
+      std::cout << " | ";
+    }
+  }
+
   std::cout << '\n';
-}
 
-void Dispatcher::handleDelete(const DeleteStatement &stmt)
-{
-  std::cout << "DELETE statement\n";
-  std::cout << stmt.table << '\n';
-}
+  for (const auto &row : result.rows)
+  {
+    for (size_t i = 0; i < row.size(); ++i)
+    {
+      printValue(row[i]);
 
-void Dispatcher::handleInsert(const InsertStatement &stmt)
-{
-  std::cout << "INSERT statement\n";
-  std::cout << stmt.table << '\n';
-}
+      if (i + 1 < row.size())
+      {
+        std::cout << " | ";
+      }
+    }
 
-void Dispatcher::handleCreateTable(const CreateTableStatement &stmt)
-{
-  std::cout << "CREATE TABLE statement\n";
-  std::cout << stmt.table << '\n';
+    std::cout << '\n';
+  }
 }

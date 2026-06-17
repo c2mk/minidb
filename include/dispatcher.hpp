@@ -1,14 +1,17 @@
 #pragma once
+
+#include "catalog.hpp"
+#include "executor.hpp"
 #include "parser/ast.hpp"
 
 class Dispatcher
 {
 public:
+  Dispatcher();
+
   void dispatch(const Statement &stmt);
 
 private:
-  void handleSelect(const SelectStatement &stmt);
-  void handleInsert(const InsertStatement &stmt);
-  void handleCreateTable(const CreateTableStatement &stmt);
-  void handleDelete(const DeleteStatement &stmt);
+  Catalog catalog_;
+  Executor executor_;
 };

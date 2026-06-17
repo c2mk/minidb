@@ -1,5 +1,7 @@
 #include "storage/types.hpp"
 #include "parser/ast.hpp"
+#include "executor.hpp"
+#include <iostream>
 
 namespace
 {
@@ -54,36 +56,202 @@ namespace
 
     return false;
   }
-}
 
-bool evaluateWhere(const Row &row, const Schema &schema, const BinaryExp &expr)
-{
-  auto leftIndex = findColumnIndex(schema, expr.left.name);
-  if (!leftIndex)
-    return false;
-
-  const Value &leftValue = row[leftIndex.value()];
-
-  Value rightValue;
-
-  if (std::holds_alternative<IntLiteral>(expr.right))
+  bool evaluateWhere(const Row &row, const Schema &schema, const BinaryExp &expr)
   {
-    rightValue = std::get<IntLiteral>(expr.right).value;
-  }
-  else if (std::holds_alternative<StringLiteral>(expr.right))
-  {
-    rightValue =
-        std::get<StringLiteral>(expr.right).value;
-  }
-  else if (std::holds_alternative<Column>(expr.right))
-  {
-    const auto &columnName = std::get<Column>(expr.right);
-    auto rightIndex = findColumnIndex(schema, columnName.name);
-
-    if (!rightIndex)
+    auto leftIndex = findColumnIndex(schema, expr.left.name);
+    if (!leftIndex)
       return false;
 
-    rightValue = row[rightIndex.value()];
+    const Value &leftValue = row[leftIndex.value()];
+
+    Value rightValue;
+
+    if (std::holds_alternative<IntLiteral>(expr.right))
+    {
+      rightValue = std::get<IntLiteral>(expr.right).value;
+    }
+    else if (std::holds_alternative<StringLiteral>(expr.right))
+    {
+      rightValue =
+          std::get<StringLiteral>(expr.right).value;
+    }
+    else if (std::holds_alternative<Column>(expr.right))
+    {
+      const auto &columnName = std::get<Column>(expr.right);
+      auto rightIndex = findColumnIndex(schema, columnName.name);
+
+      if (!rightIndex)
+        return false;
+
+      rightValue = row[rightIndex.value()];
+    }
+    return compareValues(leftValue, rightValue, expr.op);
   }
-  return compareValues(leftValue, rightValue, expr.op);
+}
+
+// Remember: Catalog& catalog_ must be initialized in the initializer list because references cannot be reseated.
+Executor::Executor(Catalog &catalog) : catalog_(catalog) {}
+
+QueryResult Executor::execute(const Statement &stmt)
+{
+  // throw deep catch high
+  try
+  {
+    if (std::holds_alternative<CreateTableStatement>(stmt))
+    {
+      return executeCreate(std::get<CreateTableStatement>(stmt));
+    }
+    if (std::holds_alternative<InsertStatement>(stmt))
+    {
+      return executeInsert(
+          std::get<InsertStatement>(stmt));
+    }
+
+    if (std::holds_alternative<SelectStatement>(stmt))
+    {
+      return executeSelect(
+          std::get<SelectStatement>(stmt));
+    }
+
+    if (std::holds_alternative<DeleteStatement>(stmt))
+    {
+      return executeDelete(
+          std::get<DeleteStatement>(stmt));
+    }
+    return QueryResult::error(
+        "Unknown statement type");
+  }
+  catch (const std::exception &e)
+  {
+    return QueryResult::error(e.what());
+  }
+}
+
+QueryResult Executor::executeCreate(const CreateTableStatement &stmt)
+{
+  Schema schema;
+  for (auto const &column : stmt.columns)
+  {
+    schema.push_back(ColumnSchema{.name = column.name, .type = parseDataType(column.type)});
+  }
+
+  catalog_.createTable(stmt.table, std::move(schema));
+
+  return QueryResult::ok("Table Created.");
+}
+
+QueryResult Executor::executeInsert(const InsertStatement &stmt)
+{
+  TableHeap &table = catalog_.getTable(stmt.table);
+
+  Row row;
+  for (const auto &value : stmt.values)
+  {
+    if (std::holds_alternative<IntLiteral>(value))
+    {
+      row.push_back(std::get<IntLiteral>(value).value);
+      // maybe shouldve done using IntLiteral = int value?
+    }
+    else if (std::holds_alternative<StringLiteral>(value))
+    {
+      row.push_back(std::get<StringLiteral>(value).value);
+    }
+  }
+  table.insertRow(std::move(row));
+  return QueryResult::ok("1 row inserted");
+}
+
+QueryResult Executor::executeSelect(const SelectStatement &stmt)
+{
+  TableHeap &table = catalog_.getTable(stmt.table);
+
+  const Schema &schema = table.schema();
+  // why get schema this way, encapsulation?
+
+  std::vector<size_t> projectedIndices;
+  std::vector<std::string> columnNames;
+
+  if (stmt.columns.size() == 1 && stmt.columns[0] == "*")
+  {
+    // yet to implement case of "*" in parser
+    for (size_t i = 0; i < schema.size(); i++)
+    {
+      projectedIndices.push_back(i);
+      columnNames.push_back(schema[i].name);
+    }
+  }
+  else
+  {
+    for (auto const &columnName : stmt.columns)
+    {
+      auto index = findColumnIndex(schema, columnName);
+
+      if (!index)
+      {
+        return QueryResult::error("Unknown column: " + columnName);
+      }
+
+      projectedIndices.push_back(index.value());
+      columnNames.push_back(columnName);
+    }
+  }
+
+  std::vector<Row> resultRows;
+
+  for (auto const &row : table.rows())
+  {
+    bool keep = true;
+
+    if (stmt.where)
+    {
+      keep = evaluateWhere(row, schema, stmt.where.value());
+    }
+
+    if (!keep)
+      continue;
+
+    Row projectedRow;
+
+    for (size_t index : projectedIndices)
+    {
+      projectedRow.push_back(row[index]);
+    }
+
+    resultRows.push_back(std::move(projectedRow));
+  }
+  return QueryResult::table(std::move(columnNames), std::move(resultRows));
+}
+
+QueryResult Executor::executeDelete(const DeleteStatement &stmt)
+{
+  TableHeap &table = catalog_.getTable(stmt.table);
+
+  const Schema &schema = table.schema();
+
+  std::vector<std::size_t> rowsToDelete;
+
+  for (size_t i = 0; i < table.rows().size(); ++i)
+  {
+    bool shouldDelete = true;
+
+    const Row &row = table.rows()[i];
+
+    if (stmt.where)
+    {
+      std::cout << "where exists" << '\n';
+      shouldDelete = evaluateWhere(row, schema, stmt.where.value());
+    }
+
+    if (shouldDelete)
+    {
+      std::cout << "where exists" << '\n';
+
+      rowsToDelete.push_back(i);
+    }
+  }
+
+  size_t deleted = table.deleteRows(rowsToDelete);
+
+  return QueryResult::ok(std::to_string(deleted) + " rows deleted.");
 }
