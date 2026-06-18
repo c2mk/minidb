@@ -7,7 +7,7 @@
 // std::move makes it O(1), else copying would be costly
 Parser::Parser(std::vector<Token> tokens) : tokens_(std::move(tokens)) {}
 
-Token Parser::peek() const
+const Token &Parser::peek() const
 {
   if (pos_ >= tokens_.size())
     throw std::runtime_error("Unexpected end of input");
@@ -15,7 +15,7 @@ Token Parser::peek() const
   return tokens_[pos_];
 }
 
-Token Parser::advance()
+const Token &Parser::advance()
 {
   if (pos_ >= tokens_.size())
     throw std::runtime_error("Unexpected end of input");
@@ -62,7 +62,7 @@ Statement Parser::parse()
 
 Statement Parser::parseStatement()
 {
-  Token token = peek();
+  const Token &token = peek();
   switch (token.type)
   {
   case TokenType::Select:
@@ -83,11 +83,11 @@ BinaryExp Parser::parseBinaryExp()
   if (atEnd())
     throw std::runtime_error("Expected condition after WHERE");
 
-  Token left = advance();
+  const Token &left = advance();
   if (left.type != TokenType::Identifier)
     throw std::runtime_error("Expected column in WHERE");
 
-  Token op = advance();
+  const Token &op = advance();
   if (op.type != TokenType::Equal &&
       op.type != TokenType::Less &&
       op.type != TokenType::Greater)
@@ -96,7 +96,8 @@ BinaryExp Parser::parseBinaryExp()
   if (atEnd())
     throw std::runtime_error("Expected RHS in WHERE");
 
-  Token right = advance();
+  const Token &right = advance();
+
   std::variant<IntLiteral, StringLiteral, Column> rhs;
 
   if (right.type == TokenType::Integer)
@@ -116,10 +117,11 @@ BinaryExp Parser::parseBinaryExp()
     throw std::runtime_error("Invalid RHS in WHERE");
   }
   return BinaryExp{
-      Column{left.lexeme},
-      op.lexeme,
-      rhs};
+      .left = Column{left.lexeme},
+      .op = op.lexeme,
+      .right = rhs};
 }
+
 SelectStatement Parser::parseSelect()
 {
   SelectStatement stmt;
@@ -127,7 +129,7 @@ SelectStatement Parser::parseSelect()
 
   while (true)
   {
-    Token token = peek();
+    const Token &token = peek();
 
     if (token.type == TokenType::Star)
     {
@@ -200,7 +202,7 @@ InsertStatement Parser::parseInsert()
     if (atEnd())
       throw std::runtime_error("Unexpected end in VALUES list");
 
-    Token t = peek();
+    const Token &t = peek();
 
     // parse value
     if (t.type == TokenType::Integer)

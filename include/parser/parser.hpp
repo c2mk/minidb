@@ -16,8 +16,8 @@ private:
 
   // helpers
   // why const like this?
-  Token peek() const;
-  Token advance();
+  const Token &peek() const;
+  const Token &advance();
   bool match(TokenType type);
   bool atEnd() const;
 
