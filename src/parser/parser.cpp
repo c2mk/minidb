@@ -29,19 +29,35 @@ bool Parser::atEnd() const
 
 bool Parser::match(TokenType type)
 {
+  // later : throw rtes
   if (atEnd())
     return false;
 
-  if (advance().type == type)
+  if (peek().type != type)
   {
-    return true;
+    return false;
   }
-  return false;
+  advance();
+  return true;
 }
 
 Statement Parser::parse()
 {
-  return parseStatement();
+  Statement stmt = parseStatement();
+
+  if (!match(TokenType::Semicolon))
+  {
+    throw std::runtime_error(
+        "Expected ';' after statement");
+  }
+
+  if (!atEnd())
+  {
+    throw std::runtime_error(
+        "Unexpected token after statement");
+  }
+
+  return stmt;
 }
 
 Statement Parser::parseStatement()
@@ -62,17 +78,67 @@ Statement Parser::parseStatement()
   }
 }
 
+BinaryExp Parser::parseBinaryExp()
+{
+  if (atEnd())
+    throw std::runtime_error("Expected condition after WHERE");
+
+  Token left = advance();
+  if (left.type != TokenType::Identifier)
+    throw std::runtime_error("Expected column in WHERE");
+
+  Token op = advance();
+  if (op.type != TokenType::Equal &&
+      op.type != TokenType::Less &&
+      op.type != TokenType::Greater)
+    throw std::runtime_error("Invalid operator in WHERE");
+
+  if (atEnd())
+    throw std::runtime_error("Expected RHS in WHERE");
+
+  Token right = advance();
+  std::variant<IntLiteral, StringLiteral, Column> rhs;
+
+  if (right.type == TokenType::Integer)
+  {
+    rhs = IntLiteral{std::stoi(right.lexeme)};
+  }
+  else if (right.type == TokenType::String)
+  {
+    rhs = StringLiteral{right.lexeme};
+  }
+  else if (right.type == TokenType::Identifier)
+  {
+    rhs = Column{right.lexeme};
+  }
+  else
+  {
+    throw std::runtime_error("Invalid RHS in WHERE");
+  }
+  return BinaryExp{
+      Column{left.lexeme},
+      op.lexeme,
+      rhs};
+}
 SelectStatement Parser::parseSelect()
 {
-  // for (auto token : tokens_)
-  //   std::cout << token.lexeme << '\n';
   SelectStatement stmt;
   advance();
 
   while (true)
   {
     Token token = peek();
-    if (token.type == TokenType::Identifier)
+
+    if (token.type == TokenType::Star)
+    {
+      stmt.columns.push_back("*");
+      advance();
+      if (peek().type == TokenType::Comma)
+      {
+        throw std::runtime_error("Unexpected comma after *");
+      }
+    }
+    else if (token.type == TokenType::Identifier)
     {
       stmt.columns.push_back(token.lexeme);
       advance();
@@ -81,6 +147,7 @@ SelectStatement Parser::parseSelect()
     {
       throw std::runtime_error("Expected column name");
     }
+
     if (peek().type == TokenType::Comma)
     {
       advance(); // consume comma
@@ -97,52 +164,12 @@ SelectStatement Parser::parseSelect()
     throw std::runtime_error("Expected table name");
   stmt.table = peek().lexeme;
   advance();
+
   if (match(TokenType::Where))
   {
-    std::cout << "hello" << '\n';
-    if (atEnd())
-      throw std::runtime_error("Expected condition after WHERE");
-
-    Token left = advance();
-    if (left.type != TokenType::Identifier)
-      throw std::runtime_error("Expected column in WHERE");
-
-    Token op = advance();
-    if (op.type != TokenType::Equal &&
-        op.type != TokenType::Less &&
-        op.type != TokenType::Greater)
-      throw std::runtime_error("Invalid operator in WHERE");
-
-    if (atEnd())
-      throw std::runtime_error("Expected RHS in WHERE");
-
-    Token right = advance();
-    std::variant<IntLiteral, StringLiteral, Column> rhs;
-
-    if (right.type == TokenType::Integer)
-    {
-      rhs = IntLiteral{std::stoi(right.lexeme)};
-    }
-    else if (right.type == TokenType::String)
-    {
-      rhs = StringLiteral{right.lexeme};
-    }
-    else if (right.type == TokenType::Identifier)
-    {
-      rhs = Column{right.lexeme};
-    }
-    else
-    {
-      throw std::runtime_error("Invalid RHS in WHERE");
-    }
-
-    stmt.where = BinaryExp{
-        Column{left.lexeme},
-        op.lexeme,
-        rhs};
-    // std::cout << stmt.table << '\n';
+    stmt.where = parseBinaryExp();
   }
-  // parser stops here, but maybe there are still some invalid tokens left which would mean we have invalid Statement
+
   return stmt;
 }
 
@@ -175,12 +202,6 @@ InsertStatement Parser::parseInsert()
 
     Token t = peek();
 
-    if (t.type == TokenType::RightParen)
-    {
-      advance();
-      break;
-    }
-
     // parse value
     if (t.type == TokenType::Integer)
     {
@@ -197,10 +218,20 @@ InsertStatement Parser::parseInsert()
       throw std::runtime_error("Invalid value in INSERT");
     }
 
-    // comma handling
-    // safe for last token since last token should be right parantheses
     if (peek().type == TokenType::Comma)
+    {
       advance();
+      continue;
+    }
+
+    if (peek().type == TokenType::RightParen)
+    {
+      advance();
+      break;
+    }
+
+    throw std::runtime_error(
+        "Expected ',' or ')' in VALUES list");
   }
 
   return stmt;
@@ -226,51 +257,7 @@ DeleteStatement Parser::parseDelete()
   // optional WHERE
   if (match(TokenType::Where))
   {
-    stmt.hasWhere = true;
-
-    if (atEnd())
-      throw std::runtime_error("Expected condition after WHERE");
-
-    Token left = advance();
-    if (left.type != TokenType::Identifier)
-      throw std::runtime_error("Expected column in WHERE");
-
-    Token op = advance();
-    if (op.type != TokenType::Equal &&
-        op.type != TokenType::Less &&
-        op.type != TokenType::Greater)
-    {
-      throw std::runtime_error("Invalid operator in WHERE");
-    }
-
-    if (atEnd())
-      throw std::runtime_error("Expected RHS in WHERE");
-
-    Token right = advance();
-
-    std::variant<IntLiteral, StringLiteral, Column> rhs;
-
-    if (right.type == TokenType::Integer)
-    {
-      rhs = IntLiteral{std::stoi(right.lexeme)};
-    }
-    else if (right.type == TokenType::String)
-    {
-      rhs = StringLiteral{right.lexeme};
-    }
-    else if (right.type == TokenType::Identifier)
-    {
-      rhs = Column{right.lexeme};
-    }
-    else
-    {
-      throw std::runtime_error("Invalid RHS in WHERE");
-    }
-
-    stmt.where = BinaryExp{
-        Column{left.lexeme},
-        op.lexeme,
-        rhs};
+    stmt.where = parseBinaryExp();
   }
 
   return stmt;
@@ -301,12 +288,6 @@ CreateTableStatement Parser::parseCreateTable()
     if (atEnd())
       throw std::runtime_error("Unexpected end in column list");
 
-    if (peek().type == TokenType::RightParen)
-    {
-      advance();
-      break;
-    }
-
     // column name
     if (peek().type != TokenType::Identifier)
       throw std::runtime_error("Expected column name");
@@ -328,7 +309,16 @@ CreateTableStatement Parser::parseCreateTable()
     if (peek().type == TokenType::Comma)
     {
       advance();
+      continue;
     }
+
+    if (peek().type == TokenType::RightParen)
+    {
+      advance();
+      break;
+    }
+
+    throw std::runtime_error("Expected ',' or ')' in column list");
   }
 
   return stmt;

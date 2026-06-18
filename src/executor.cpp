@@ -25,7 +25,8 @@ namespace
   {
     // Every type inside the variant gets a number based on its position.
     if (lhs.index() != rhs.index())
-      return false;
+      throw std::runtime_error(
+          "Type mismatch in comparison");
 
     if (std::holds_alternative<int>(lhs))
     {
@@ -34,12 +35,13 @@ namespace
 
       if (op == "=")
         return left == right;
-      else if (op == "<")
+      if (op == "<")
         return left < right;
-      else if (op == ">")
+      if (op == ">")
         return left > right;
 
-      return false;
+      throw std::runtime_error(
+          "Unsupported operator: " + op);
     }
     const std::string &left =
         std::get<std::string>(lhs);
@@ -54,14 +56,42 @@ namespace
     else if (op == ">")
       return left > right;
 
-    return false;
+    throw std::runtime_error(
+        "Unsupported operator: " + op);
+  }
+
+  void validateWhereColums(const Schema &schema, const BinaryExp &expr)
+  {
+    // Ensures all column references exist before row scanning.
+    // double lookups for leftIndex feels wrong tho, one here one in evaluateWhere
+    auto leftIndex =
+        findColumnIndex(schema, expr.left.name);
+
+    if (!leftIndex)
+    {
+      throw std::runtime_error(
+          "Unknown column: " + expr.left.name);
+    }
+
+    if (std::holds_alternative<Column>(expr.right))
+    {
+      const auto &column =
+          std::get<Column>(expr.right);
+
+      auto rightIndex =
+          findColumnIndex(schema, column.name);
+
+      if (!rightIndex)
+      {
+        throw std::runtime_error(
+            "Unknown column: " + column.name);
+      }
+    }
   }
 
   bool evaluateWhere(const Row &row, const Schema &schema, const BinaryExp &expr)
   {
     auto leftIndex = findColumnIndex(schema, expr.left.name);
-    if (!leftIndex)
-      return false;
 
     const Value &leftValue = row[leftIndex.value()];
 
@@ -80,9 +110,6 @@ namespace
     {
       const auto &columnName = std::get<Column>(expr.right);
       auto rightIndex = findColumnIndex(schema, columnName.name);
-
-      if (!rightIndex)
-        return false;
 
       rightValue = row[rightIndex.value()];
     }
@@ -198,7 +225,8 @@ QueryResult Executor::executeSelect(const SelectStatement &stmt)
   }
 
   std::vector<Row> resultRows;
-
+  if (stmt.where)
+    validateWhereColums(schema, stmt.where.value());
   for (auto const &row : table.rows())
   {
     bool keep = true;
@@ -231,6 +259,9 @@ QueryResult Executor::executeDelete(const DeleteStatement &stmt)
 
   std::vector<std::size_t> rowsToDelete;
 
+  if (stmt.where)
+    validateWhereColums(schema, stmt.where.value());
+
   for (size_t i = 0; i < table.rows().size(); ++i)
   {
     bool shouldDelete = true;
@@ -239,14 +270,11 @@ QueryResult Executor::executeDelete(const DeleteStatement &stmt)
 
     if (stmt.where)
     {
-      std::cout << "where exists" << '\n';
       shouldDelete = evaluateWhere(row, schema, stmt.where.value());
     }
 
     if (shouldDelete)
     {
-      std::cout << "where exists" << '\n';
-
       rowsToDelete.push_back(i);
     }
   }

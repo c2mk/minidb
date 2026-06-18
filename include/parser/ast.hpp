@@ -56,7 +56,6 @@ struct CreateTableStatement
 struct DeleteStatement
 {
   std::string table;
-  bool hasWhere = false;
   std::optional<BinaryExp> where;
   // std::variant<std::monostate, BinaryExp> where;
   // monostate is a type that represents nothing

@@ -27,4 +27,5 @@ private:
   InsertStatement parseInsert();
   DeleteStatement parseDelete();
   CreateTableStatement parseCreateTable();
+  BinaryExp parseBinaryExp();
 };

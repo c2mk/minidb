@@ -36,7 +36,7 @@ enum class TokenType
   GreaterEqual,
   NotEqual,
 
-  EndOfFile,
+  // EndOfFile,
   Unknown
 };
 

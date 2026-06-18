@@ -30,27 +30,26 @@ Tokenizer::Tokenizer(std::string_view input) : input_(input), pos_(0) {}
 
 char Tokenizer::peek() const
 {
-  if (pos_ < input_.size())
+  if (!atEnd())
     return input_[pos_];
-  return '\0';
-  // will do this
-  // throw std::runtime_error("peek() out of bounds");
+
+  throw std::runtime_error("peek() out of bounds");
 }
 
 char Tokenizer::advance()
 {
-  if (pos_ < input_.size())
+  if (!atEnd())
   {
     return input_[pos_++];
   }
-  return '\0';
-  // throw std::runtime_error("peek() out of bounds");
+
+  throw std::runtime_error("advance() out of bounds");
 }
 
 void Tokenizer::skipWhitespace()
 {
   // why static cast, are there other types of casts
-  while (pos_ < input_.size() && std::isspace(static_cast<unsigned char>(input_[pos_])))
+  while (!atEnd() && std::isspace(static_cast<unsigned char>(input_[pos_])))
   {
     pos_++;
   }
@@ -86,8 +85,7 @@ std::vector<Token> Tokenizer::tokenize()
     else
       tokens.push_back(makeSymbol());
   }
-  // use designated initializers
-  tokens.push_back(Token{.type = TokenType::EndOfFile, .lexeme = ""});
+
   return tokens;
 }
 
@@ -109,29 +107,29 @@ Token Tokenizer::makeNumber()
 
 Token Tokenizer::makeString()
 {
-  // assumption:'anything here until next single quote'
   std::string lexeme;
 
-  // consume opening quote '
+  // consume opening quote
   advance();
 
   while (!atEnd())
   {
-    char c = static_cast<unsigned char>(peek());
+    char c = peek();
 
-    // closing quote
     if (c == '\'')
     {
       advance(); // consume closing quote
-      break;
+
+      return Token{
+          .type = TokenType::String,
+          .lexeme = lexeme};
     }
 
     lexeme += advance();
   }
 
-  return Token{
-      .type = TokenType::String,
-      .lexeme = lexeme};
+  throw std::runtime_error(
+      "Unterminated string literal");
 }
 
 Token Tokenizer::makeIdentifierOrKeyword()
@@ -203,6 +201,14 @@ Token Tokenizer::makeSymbol()
     return Token{
         .type = TokenType::Equal,
         .lexeme = "="};
+  case '<':
+    return Token{
+        .type = TokenType::Less,
+        .lexeme = "<"};
+  case '>':
+    return Token{
+        .type = TokenType::Greater,
+        .lexeme = ">"};
 
   default:
     return Token{
