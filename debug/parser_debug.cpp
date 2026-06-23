@@ -5,8 +5,10 @@
 
 int main()
 {
-  std::string sql =
-      "SELECT name, age FROM users WHERE age = 21;";
+  // std::string sql = "SELECT name, age FROM users WHERE age = 21;";
+  // std::string sql = "CREATE TABLE t (id INT PRIMARY KEY,name TEXT NOT NULL);";
+  std::string sql = "CREATE TABLE t (id INT NOT NULL PRIMARY KEY);";
+  // std::string sql = "CREATE TABLE t (id INT PRIMARY);";
 
   try
   {

@@ -11,13 +11,16 @@ enum class DataType
 };
 
 // If they were defined as structs, inserting values would be ugly
-using Value = std::variant<int, std::string>;
+using Value = std::variant<std::monostate, int, std::string>;
 using Row = std::vector<Value>;
 
 struct ColumnSchema
 {
   std::string name;
   DataType type;
+
+  bool isPrimaryKey = false;
+  bool isNotNull = false;
 };
 
 using Schema = std::vector<ColumnSchema>;

@@ -8,41 +8,41 @@
 
 int main()
 {
-  Catalog catalog;
-  Executor executor(catalog);
+    Catalog catalog;
+    Executor executor(catalog);
 
-  std::vector<std::string> queries{
-      "CREATE TABLE users(id INT, name TEXT);",
-      "INSERT INTO users VALUES(1,'Alice');",
-      "SELECT * FROM users;"};
+    std::vector<std::string> queries{
+        "CREATE TABLE users(id INT PRimary KeY, name TEXT Not Null);",
+        "INSERT INTO users VALUES(1,'Alice');",
+        "SELECT * FROM users;"};
 
-  for (const auto &sql : queries)
-  {
-    try
+    for (const auto &sql : queries)
     {
-      Tokenizer tokenizer(sql);
-      auto tokens =
-          tokenizer.tokenize();
+        try
+        {
+            Tokenizer tokenizer(sql);
+            auto tokens =
+                tokenizer.tokenize();
 
-      Parser parser(std::move(tokens));
+            Parser parser(std::move(tokens));
 
-      auto stmt =
-          parser.parse();
+            auto stmt =
+                parser.parse();
 
-      auto result =
-          executor.execute(stmt);
+            auto result =
+                executor.execute(stmt);
 
-      std::cout
-          << "SUCCESS: "
-          << sql
-          << '\n';
+            std::cout
+                << "SUCCESS: "
+                << sql
+                << '\n';
+        }
+        catch (const std::exception &e)
+        {
+            std::cout
+                << "ERROR: "
+                << e.what()
+                << '\n';
+        }
     }
-    catch (const std::exception &e)
-    {
-      std::cout
-          << "ERROR: "
-          << e.what()
-          << '\n';
-    }
-  }
 }

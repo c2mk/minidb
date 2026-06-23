@@ -6,6 +6,10 @@
 enum class TokenType
 {
   // Keywords
+  Primary,
+  Key,
+  Not,
+  Null,
   Select,
   Insert,
   Create,

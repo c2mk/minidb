@@ -155,15 +155,33 @@ QueryResult Executor::execute(const Statement &stmt)
   }
 }
 
-QueryResult Executor::executeCreate(const CreateTableStatement &stmt)
+QueryResult Executor::executeCreate(
+    const CreateTableStatement &stmt)
 {
   Schema schema;
-  for (auto const &column : stmt.columns)
+
+  size_t primaryKeyCount = 0;
+
+  for (const auto &column : stmt.columns)
   {
-    schema.push_back(ColumnSchema{.name = column.name, .type = parseDataType(column.type)});
+    primaryKeyCount += column.isPrimaryKey;
+
+    schema.push_back(ColumnSchema{
+        .name = column.name,
+        .type = parseDataType(column.type),
+        .isPrimaryKey = column.isPrimaryKey,
+        .isNotNull = column.isNotNull});
   }
 
-  catalog_.createTable(stmt.table, std::move(schema));
+  if (primaryKeyCount > 1)
+  {
+    return QueryResult::error(
+        "Only one PRIMARY KEY column is supported");
+  }
+
+  catalog_.createTable(
+      stmt.table,
+      std::move(schema));
 
   return QueryResult::ok("Table Created.");
 }

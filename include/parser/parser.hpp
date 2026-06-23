@@ -28,4 +28,5 @@ private:
   DeleteStatement parseDelete();
   CreateTableStatement parseCreateTable();
   BinaryExp parseBinaryExp();
+  ColumnDef parseColumnDef();
 };

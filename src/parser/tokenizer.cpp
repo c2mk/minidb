@@ -7,6 +7,10 @@
 
 // why static?
 static const std::unordered_map<std::string, TokenType> keywords = {
+    {"primary", TokenType ::Primary},
+    {"key", TokenType ::Key},
+    {"not", TokenType ::Not},
+    {"null", TokenType ::Null},
     {"select", TokenType::Select},
     {"insert", TokenType::Insert},
     {"create", TokenType::Create},

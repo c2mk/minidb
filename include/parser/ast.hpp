@@ -45,6 +45,9 @@ struct ColumnDef
 {
   std::string name;
   std::string type;
+
+  bool isPrimaryKey = false;
+  bool isNotNull = false;
 };
 
 struct CreateTableStatement
