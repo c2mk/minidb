@@ -21,6 +21,18 @@ namespace
     return std::nullopt;
   }
 
+  std::optional<size_t> findPrimaryKeyColumn(const Schema &schema)
+  {
+    for (size_t i = 0; i < schema.size(); ++i)
+    {
+      if (schema[i].isPrimaryKey)
+      {
+        return i;
+      }
+    }
+    return std::nullopt;
+  }
+
   bool compareValues(const Value &lhs, const Value &rhs, const std::string &op)
   {
     // Every type inside the variant gets a number based on its position.
@@ -146,6 +158,39 @@ namespace
       }
     }
   }
+
+  void validateNotNull(const Schema &schema, const Row &row)
+  {
+    for (size_t i = 0; i < schema.size(); i++)
+    {
+      const auto &col = schema[i];
+      const auto &val = row[i];
+      if (col.isNotNull && std::holds_alternative<std::monostate>(val))
+      {
+        throw std::runtime_error("Column '" + col.name + "' cannot be NULL");
+      }
+    }
+  }
+
+  void validatePrimaryKeyUniqueness(const TableHeap &table, const Row &row)
+  {
+    const Schema &schema = table.schema();
+
+    const auto pkIdx = findPrimaryKeyColumn(schema);
+
+    if (!pkIdx)
+    {
+      return;
+    }
+    const auto &rows = table.rows();
+    for (const auto &existingRow : rows)
+    {
+      if (compareValues(existingRow[pkIdx.value()], row[pkIdx.value()], "="))
+      {
+        throw std::runtime_error("Duplicate primary key value");
+      }
+    }
+  }
 }
 
 // Remember: Catalog& catalog_ must be initialized in the initializer list because references cannot be reseated.
@@ -242,6 +287,9 @@ QueryResult Executor::executeInsert(const InsertStatement &stmt)
   const Schema &schema = table.schema();
   validateColumnCount(schema, row);
   validateInsertTypes(schema, row);
+  validateNotNull(schema, row);
+  validatePrimaryKeyUniqueness(table, row);
+
   table.insertRow(std::move(row));
 
   return QueryResult::ok("1 row inserted");
