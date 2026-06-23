@@ -15,6 +15,10 @@ namespace
     {
       std::cout << std::get<std::string>(value);
     }
+    else if (std::holds_alternative<std::monostate>(value))
+    {
+      std::cout << "NULL";
+    }
   }
 }
 

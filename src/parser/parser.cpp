@@ -122,6 +122,50 @@ BinaryExp Parser::parseBinaryExp()
       .right = rhs};
 }
 
+ColumnDef Parser::parseColumnDef()
+{
+  if (peek().type != TokenType::Identifier)
+    throw std::runtime_error("Expected column name.");
+
+  ColumnDef col;
+  col.name = advance().lexeme;
+
+  if (atEnd() || peek().type != TokenType::Identifier)
+    throw std::runtime_error("Expected column type");
+
+  col.type = advance().lexeme;
+
+  while (!atEnd())
+  {
+    if (match(TokenType::Primary))
+    {
+      if (!match(TokenType::Key))
+        throw std::runtime_error("Expected KEY after PRIMARY");
+
+      if (col.isPrimaryKey)
+        throw std::runtime_error("Duplicate PRIMARY KEY constraint");
+
+      col.isPrimaryKey = true;
+      col.isNotNull = true;
+    }
+    else if (match(TokenType::Not))
+    {
+      if (!match(TokenType::Null))
+        throw std::runtime_error("Expected NULL after NOT");
+
+      if (col.isNotNull)
+        throw std::runtime_error("Duplicate NOT NULL constraint");
+
+      col.isNotNull = true;
+    }
+    else
+    {
+      break;
+    }
+  }
+  return col;
+}
+
 SelectStatement Parser::parseSelect()
 {
   SelectStatement stmt;
@@ -150,14 +194,6 @@ SelectStatement Parser::parseSelect()
       throw std::runtime_error("Expected column name");
     }
 
-    // if (peek().type == TokenType::Comma)
-    // {
-    //   advance(); // consume comma
-    // }
-    // else
-    // {
-    //   break;
-    // }
     if (!match(TokenType::Comma))
     {
       break;
@@ -218,6 +254,11 @@ InsertStatement Parser::parseInsert()
       stmt.values.push_back(StringLiteral{t.lexeme});
       advance();
     }
+    else if (t.type == TokenType::Null)
+    {
+      stmt.values.push_back(NullLiteral{});
+      advance();
+    }
     else
     {
       throw std::runtime_error("Invalid value in INSERT");
@@ -264,50 +305,6 @@ DeleteStatement Parser::parseDelete()
   }
 
   return stmt;
-}
-
-ColumnDef Parser::parseColumnDef()
-{
-  if (peek().type != TokenType::Identifier)
-    throw std::runtime_error("Expected column name.");
-
-  ColumnDef col;
-  col.name = advance().lexeme;
-
-  if (atEnd() || peek().type != TokenType::Identifier)
-    throw std::runtime_error("Expected column type");
-
-  col.type = advance().lexeme;
-
-  while (!atEnd())
-  {
-    if (match(TokenType::Primary))
-    {
-      if (!match(TokenType::Key))
-        throw std::runtime_error("Expected KEY after PRIMARY");
-
-      if (col.isPrimaryKey)
-        throw std::runtime_error("Duplicate PRIMARY KEY constraint");
-
-      col.isPrimaryKey = true;
-      col.isNotNull = true;
-    }
-    else if (match(TokenType::Not))
-    {
-      if (!match(TokenType::Null))
-        throw std::runtime_error("Expected NULL after NOT");
-
-      if (col.isNotNull)
-        throw std::runtime_error("Duplicate NOT NULL constraint");
-
-      col.isNotNull = true;
-    }
-    else
-    {
-      break;
-    }
-  }
-  return col;
 }
 
 CreateTableStatement Parser::parseCreateTable()

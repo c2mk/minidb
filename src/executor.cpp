@@ -115,6 +115,37 @@ namespace
     }
     return compareValues(leftValue, rightValue, expr.op);
   }
+
+  void validateColumnCount(const Schema &schema, const Row &row)
+  {
+    if (schema.size() != row.size())
+      throw std::runtime_error("Column count mismatch.");
+  }
+
+  void validateInsertTypes(const Schema &schema, const Row &row)
+  {
+    for (size_t i = 0; i < schema.size(); ++i)
+    {
+      const auto &column = schema[i];
+      const auto &value = row[i];
+
+      if (std::holds_alternative<std::monostate>(value))
+      {
+        continue;
+      }
+
+      switch (column.type)
+      {
+      case DataType::Int:
+        if (!std::holds_alternative<int>(value))
+          throw std::runtime_error("Type mismatch for column '" + column.name + "'");
+        break;
+      case DataType::Text:
+        if (!std::holds_alternative<std::string>(value))
+          throw std::runtime_error("Type mismatch for column '" + column.name + "'");
+      }
+    }
+  }
 }
 
 // Remember: Catalog& catalog_ must be initialized in the initializer list because references cannot be reseated.
@@ -202,8 +233,17 @@ QueryResult Executor::executeInsert(const InsertStatement &stmt)
     {
       row.push_back(std::get<StringLiteral>(value).value);
     }
+    else if (std::holds_alternative<NullLiteral>(value))
+    {
+      row.push_back(std::monostate{});
+    }
   }
+
+  const Schema &schema = table.schema();
+  validateColumnCount(schema, row);
+  validateInsertTypes(schema, row);
   table.insertRow(std::move(row));
+
   return QueryResult::ok("1 row inserted");
 }
 

@@ -15,6 +15,10 @@ struct StringLiteral
   std::string value;
 };
 
+struct NullLiteral
+{
+};
+
 struct Column
 {
   std::string name;
@@ -38,7 +42,7 @@ struct SelectStatement
 struct InsertStatement
 {
   std::string table;
-  std::vector<std::variant<IntLiteral, StringLiteral>> values;
+  std::vector<std::variant<IntLiteral, StringLiteral, NullLiteral>> values;
 };
 
 struct ColumnDef
