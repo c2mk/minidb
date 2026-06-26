@@ -1,5 +1,4 @@
 /build
 /.vscode
 /progress
-./docs/learning
-./docs/phases
+/docs

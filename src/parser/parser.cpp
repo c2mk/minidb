@@ -168,6 +168,9 @@ ColumnDef Parser::parseColumnDef()
 
 SelectStatement Parser::parseSelect()
 {
+  // SELECT * FROM users WHERE name = 'abhi';
+  // SELECT id from users WHERE name = 'abhi';
+
   SelectStatement stmt;
   advance();
 
