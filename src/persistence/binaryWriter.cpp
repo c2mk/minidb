@@ -54,3 +54,4 @@ void BinaryWriter::writeString(const std::string &value)
 // A note on portability
 
 // This technique is fast and common, but it writes the machine's in-memory representation directly. That means the file depends on things like endianness (byte order). If you want a binary file format that works across all architectures, you usually choose a fixed byte order (often little-endian or network byte order) and serialize each byte explicitly rather than dumping the raw memory.
+

@@ -18,6 +18,11 @@ add_library(dbms_lib
 
     src/storage/table.cpp
     src/storage/types.cpp
+
+    src/persistence/binaryReader.cpp
+    src/persistence/binaryWriter.cpp
+    src/persistence/persistenceManager.cpp
+
 )
 target_include_directories(dbms_lib PUBLIC include)
 
