@@ -61,3 +61,8 @@ std::string BinaryReader::readString()
 
   return value;
 }
+
+// DataType BinaryReader::readDataType()
+// {
+//   return static_cast<DataType>(readUInt32());
+// }

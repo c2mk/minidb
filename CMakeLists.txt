@@ -51,4 +51,9 @@ add_executable(integration_debug
  )
 target_link_libraries(integration_debug PRIVATE dbms_lib)
 
+add_executable(persistence_debug
+ debug/persistence_debug.cpp
+ )
+target_link_libraries(persistence_debug PRIVATE dbms_lib)
+
 # cmake -G "MinGW Makefiles" -B build
