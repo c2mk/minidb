@@ -349,6 +349,7 @@ Important terms
 pin: page is in use, cannot be evicted
 dirty: page changed in memory and not yet written back
 unpin: page is done being used
+
 Phase 8: Indexing with a B+ tree
 Problem statement
 

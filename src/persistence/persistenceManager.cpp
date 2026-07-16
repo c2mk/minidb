@@ -1,8 +1,5 @@
 #include "persistence/persistenceManager.hpp"
 
-#include "persistence/binaryWriter.hpp"
-#include "persistence/binaryReader.hpp"
-
 void PersistenceManager::writeDataType(BinaryWriter &writer, DataType type)
 {
   writer.writeEnum(type);
@@ -62,4 +59,81 @@ Schema PersistenceManager::readSchema(BinaryReader &reader)
   }
 
   return schema;
+}
+
+// notice that currently we are serializing int using uint32_t
+// but int isnt guaranteeed to be 32 bits, should refactor and do something like
+// using Int32 = int32_t
+void PersistenceManager::writeValue(BinaryWriter &writer, const Value &value)
+{
+  if (std::holds_alternative<std::monostate>(value))
+  {
+    writer.writeEnum(ValueType::Null);
+  }
+  else if (std::holds_alternative<int>(value))
+  {
+    writer.writeEnum(ValueType::Int);
+
+    writer.writeInt32(static_cast<int32_t>(std::get<int>(value)));
+  }
+  else if (std::holds_alternative<std::string>(value))
+  {
+    writer.writeEnum(ValueType::Text);
+
+    writer.writeString(std::get<std::string>(value));
+  }
+}
+
+Value PersistenceManager::readValue(BinaryReader &reader)
+{
+  ValueType type = reader.readEnum<ValueType>();
+
+  switch (type)
+  {
+  case ValueType::Null:
+    return std::monostate{};
+
+  case ValueType::Int:
+  {
+    int value = static_cast<int>(reader.readInt32());
+
+    return value;
+  }
+
+  case ValueType::Text:
+  {
+    return reader.readString();
+  }
+
+  default:
+    throw std::runtime_error("Unknown value type");
+  }
+}
+
+void PersistenceManager::writeRow(
+    BinaryWriter &writer,
+    const Row &row)
+{
+  writer.writeUInt32(static_cast<uint32_t>(row.size()));
+
+  for (const auto &value : row)
+  {
+    writeValue(writer, value);
+  }
+}
+
+Row PersistenceManager::readRow(BinaryReader &reader)
+{
+  uint32_t valueCount = reader.readUInt32();
+
+  Row row;
+
+  row.reserve(valueCount);
+
+  for (uint32_t i = 0; i < valueCount; i++)
+  {
+    row.push_back(readValue(reader));
+  }
+
+  return row;
 }

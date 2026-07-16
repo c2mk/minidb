@@ -25,6 +25,13 @@ void BinaryWriter::writeUInt32(uint32_t value)
   }
 }
 
+void BinaryWriter::writeInt32(int32_t value)
+{
+  out_.write(
+      reinterpret_cast<const char *>(&value),
+      sizeof(value));
+}
+
 void BinaryWriter::writeBool(bool value)
 {
   // serialize bool directly

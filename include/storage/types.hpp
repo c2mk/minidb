@@ -4,8 +4,23 @@
 #include <variant>
 #include <vector>
 
+// This answers:
+// "What kind of data is this column supposed to contain?"
+// Describes Schema
+// can change name to ColumnType instead of DataType
+// or logicaltype vs physicaltype
 enum class DataType
 {
+  Int,
+  Text
+};
+
+enum class ValueType
+{
+  // This answers:
+  // "What is the actual thing stored in this cell right now?"
+  // Runtime value representation
+  Null,
   Int,
   Text
 };

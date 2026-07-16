@@ -12,6 +12,7 @@ public:
 
   // int32 because dont wanna depend on number ob bits int holds
   void writeUInt32(uint32_t value);
+  void writeInt32(int32_t value);
   void writeBool(bool value);
   void writeString(const std::string &value);
 

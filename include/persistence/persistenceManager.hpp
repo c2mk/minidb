@@ -1,40 +1,52 @@
 #pragma once
 
 #include "catalog.hpp"
+#include "persistence/binaryWriter.hpp"
+#include "persistence/binaryReader.hpp"
 
 #include <string>
-
-// forward declaration instead of including
-class BinaryWriter;
-class BinaryReader;
 
 class PersistenceManager
 {
 public:
-  void saveCatalog(const Catalog &catalog,
-                   const std::string &filename);
+    void saveCatalog(const Catalog &catalog,
+                     const std::string &filename);
 
-  Catalog loadCatalog(const std::string &filename);
+    Catalog loadCatalog(const std::string &filename);
 
-  // private:
-  void writeDataType(
-      BinaryWriter &writer,
-      DataType type);
+    // private:
+    void writeDataType(
+        BinaryWriter &writer,
+        DataType type);
 
-  DataType readDataType(
-      BinaryReader &reader);
+    DataType readDataType(
+        BinaryReader &reader);
 
-  void writeSchema(
-      BinaryWriter &writer,
-      const Schema &schema);
+    void writeSchema(
+        BinaryWriter &writer,
+        const Schema &schema);
 
-  Schema readSchema(
-      BinaryReader &reader);
+    Schema readSchema(
+        BinaryReader &reader);
 
-  void writeColumnSchema(
-      BinaryWriter &writer,
-      const ColumnSchema &column);
+    void writeColumnSchema(
+        BinaryWriter &writer,
+        const ColumnSchema &column);
 
-  ColumnSchema readColumnSchema(
-      BinaryReader &reader);
+    ColumnSchema readColumnSchema(
+        BinaryReader &reader);
+
+    void writeValue(
+        BinaryWriter &writer,
+        const Value &value);
+
+    Value readValue(
+        BinaryReader &reader);
+
+    void writeRow(
+        BinaryWriter &writer,
+        const Row &row);
+
+    Row readRow(
+        BinaryReader &reader);
 };

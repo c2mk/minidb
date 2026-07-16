@@ -10,6 +10,7 @@ class BinaryReader
 public:
   explicit BinaryReader(const std::string &filename);
   uint32_t readUInt32();
+  int32_t readInt32();
   bool readBool();
   std::string readString();
 

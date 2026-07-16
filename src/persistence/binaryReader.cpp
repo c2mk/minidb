@@ -26,6 +26,17 @@ uint32_t BinaryReader::readUInt32()
   return value;
 }
 
+int32_t BinaryReader::readInt32()
+{
+  int32_t value;
+
+  in_.read(
+      reinterpret_cast<char *>(&value),
+      sizeof(value));
+
+  return value;
+}
+
 bool BinaryReader::readBool()
 {
   bool value;
