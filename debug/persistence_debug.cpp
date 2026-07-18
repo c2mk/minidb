@@ -3,98 +3,168 @@
 #include "persistence/binaryWriter.hpp"
 
 #include <iostream>
+#include <cassert>
+
+void printValue(const Value &value)
+{
+  if (std::holds_alternative<int>(value))
+  {
+    std::cout << std::get<int>(value);
+  }
+  else if (std::holds_alternative<std::string>(value))
+  {
+    std::cout << '"' << std::get<std::string>(value) << '"';
+  }
+  else
+  {
+    std::cout << "NULL";
+  }
+}
+
+void printTable(const TableHeap &table)
+{
+  const auto &schema = table.schema();
+
+  std::cout << "\nSCHEMA\n";
+  for (const auto &column : schema)
+  {
+    std::cout
+        << column.name
+        << " type="
+        << static_cast<int>(column.type)
+        << " PK="
+        << column.isPrimaryKey
+        << " NN="
+        << column.isNotNull
+        << '\n';
+  }
+
+  std::cout << "\nROWS\n";
+
+  for (const auto &row : table.rows())
+  {
+    for (const auto &value : row)
+    {
+      printValue(value);
+      std::cout << " | ";
+    }
+    std::cout << '\n';
+  }
+}
+
+bool compareTables(
+    const TableHeap &a,
+    const TableHeap &b)
+{
+  if (a.schema().size() != b.schema().size())
+    return false;
+
+  for (size_t i = 0; i < a.schema().size(); i++)
+  {
+    const auto &ca = a.schema()[i];
+    const auto &cb = b.schema()[i];
+
+    if (ca.name != cb.name ||
+        ca.type != cb.type ||
+        ca.isPrimaryKey != cb.isPrimaryKey ||
+        ca.isNotNull != cb.isNotNull)
+    {
+      return false;
+    }
+  }
+
+  if (a.rows().size() != b.rows().size())
+    return false;
+
+  for (size_t i = 0; i < a.rows().size(); i++)
+  {
+    const auto &ra = a.rows()[i];
+    const auto &rb = b.rows()[i];
+
+    if (ra.size() != rb.size())
+      return false;
+
+    for (size_t j = 0; j < ra.size(); j++)
+    {
+      if (ra[j] != rb[j])
+        return false;
+    }
+  }
+
+  return true;
+}
 
 int main()
 {
   try
   {
-    // Schema originalSchema = {
-    //     ColumnSchema{
-    //         .name = "id",
-    //         .type = DataType::Int,
-    //         .isPrimaryKey = true,
-    //         .isNotNull = true},
-    //     ColumnSchema{
-    //         .name = "name",
-    //         .type = DataType::Text,
-    //         .isPrimaryKey = false,
-    //         .isNotNull = true},
-    //     ColumnSchema{
-    //         .name = "age",
-    //         .type = DataType::Int,
-    //         .isPrimaryKey = false,
-    //         .isNotNull = false}};
-
-    // std::cout << "Original schema:\n";
-
-    // for (const auto &column : originalSchema)
-    // {
-    //   std::cout
-    //       << column.name
-    //       << " "
-    //       << static_cast<int>(column.type)
-    //       << " PK="
-    //       << column.isPrimaryKey
-    //       << " NN="
-    //       << column.isNotNull
-    //       << '\n';
-    // }
-
-    // // WRITE
-    // // writeSchema is private currently, make it public to test
-
-    // PersistenceManager pm;
-    // {
-    //   BinaryWriter writer("schema_test.bin");
-    //   pm.writeSchema(writer, originalSchema);
-    // }
-
-    // std::cout << "\nWRITE SUCCESS\n";
-
-    // // READ
-    // // readSchema is private currently, make it public to test
-
-    // Schema loaded;
-    // {
-    //   BinaryReader reader("schema_test.bin");
-    //   loaded = pm.readSchema(reader);
-    // }
-    // for (const auto &column : loaded)
-    // {
-    //   std::cout
-    //       << column.name
-    //       << " "
-    //       << static_cast<int>(column.type)
-    //       << " PK="
-    //       << column.isPrimaryKey
-    //       << " NN="
-    //       << column.isNotNull
-    //       << '\n';
-    // }
-    // std::cout << "\nREAD SUCCESS\n";
-    Row original = {
-        42,
-        std::string("Alice"),
-        std::monostate{},
-        -100};
     PersistenceManager pm;
-    {
-      BinaryWriter writer("row.bin");
-      pm.writeRow(writer, original);
-    }
-    {
-      BinaryReader reader("row.bin");
-      Row loaded = pm.readRow(reader);
 
-      for (const auto &val : loaded)
-      {
-        if (std::holds_alternative<std::string>(val))
-          std::cout << std::get<std::string>(val) << '\n';
-        else if (std::holds_alternative<int>(val))
-          std::cout << std::get<int>(val) << '\n';
-        else
-          std::cout << "Null" << '\n';
-      }
+    Schema schema =
+        {
+            {.name = "id",
+             .type = DataType::Int,
+             .isPrimaryKey = true,
+             .isNotNull = true},
+
+            {.name = "name",
+             .type = DataType::Text,
+             .isPrimaryKey = false,
+             .isNotNull = true},
+
+            {.name = "age",
+             .type = DataType::Int,
+             .isPrimaryKey = false,
+             .isNotNull = false}};
+
+    TableHeap original(schema);
+
+    original.insertRow(
+        {1,
+         std::string("Alice"),
+         20});
+
+    original.insertRow(
+        {2,
+         std::string("Bob"),
+         std::monostate{}});
+
+    original.insertRow(
+        {-5,
+         std::string(""),
+         -100});
+
+    std::cout << "ORIGINAL TABLE";
+    printTable(original);
+
+    // WRITE
+    {
+      BinaryWriter writer("full_table_test.bin");
+      pm.writeTableHeap(writer, original);
+    }
+
+    std::cout << "\nWRITE SUCCESS\n";
+
+    // READ
+    TableHeap loaded =
+        [&]()
+    {
+      BinaryReader reader("full_table_test.bin");
+      return pm.readTableHeap(reader);
+    }();
+
+    std::cout << "\nLOADED TABLE";
+    printTable(loaded);
+
+    if (compareTables(original, loaded))
+    {
+      std::cout
+          << "\n\nPASS: Tables identical after serialization\n";
+    }
+    else
+    {
+      std::cout
+          << "\n\nFAIL: Tables differ\n";
     }
   }
   catch (const std::exception &e)

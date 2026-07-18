@@ -3,6 +3,7 @@
 #include "catalog.hpp"
 #include "persistence/binaryWriter.hpp"
 #include "persistence/binaryReader.hpp"
+#include "storage/table.hpp"
 
 #include <string>
 
@@ -48,5 +49,19 @@ public:
         const Row &row);
 
     Row readRow(
+        BinaryReader &reader);
+
+    void writeTableHeap(
+        BinaryWriter &writer,
+        const TableHeap &table);
+
+    TableHeap readTableHeap(
+        BinaryReader &reader);
+
+    void writeCatalog(
+        BinaryWriter &writer,
+        const Catalog &catalog);
+
+    Catalog readCatalog(
         BinaryReader &reader);
 };

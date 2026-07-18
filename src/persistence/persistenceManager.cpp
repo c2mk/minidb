@@ -137,3 +137,81 @@ Row PersistenceManager::readRow(BinaryReader &reader)
 
   return row;
 }
+
+void PersistenceManager::writeTableHeap(BinaryWriter &writer, const TableHeap &table)
+{
+  writeSchema(writer, table.schema());
+
+  const auto &rows = table.rows();
+
+  writer.writeUInt32(static_cast<uint32_t>(rows.size()));
+
+  for (const auto &row : rows)
+    writeRow(writer, row);
+}
+
+TableHeap PersistenceManager::readTableHeap(BinaryReader &reader)
+{
+  Schema schema = readSchema(reader);
+
+  TableHeap table(std::move(schema));
+
+  uint32_t rowCount = reader.readUInt32();
+
+  for (uint32_t i = 0; i < rowCount; i++)
+  {
+    Row row = readRow(reader);
+    table.insertRow(std::move(row));
+  }
+
+  return table;
+  // Returning by value:
+  // return table;
+  // uses move semantics.
+  // Modern C++ handles this efficiently (NRVO/move).
+}
+
+void PersistenceManager::writeCatalog(BinaryWriter &writer, const Catalog &catalog)
+{
+  const auto tableNames = catalog.tableNames();
+
+  writer.writeUInt32(
+      static_cast<uint32_t>(tableNames.size()));
+
+  for (const auto &name : tableNames)
+  {
+    writer.writeString(name);
+
+    writeTableHeap(
+        writer,
+        catalog.getTable(name));
+  }
+}
+
+Catalog PersistenceManager::readCatalog(BinaryReader &reader)
+{
+  Catalog catalog;
+
+  uint32_t tableCount = reader.readUInt32();
+
+  for (uint32_t i = 0; i < tableCount; i++)
+  {
+    // ugly double work
+    // add something like Catalog::addTable in the future
+
+    std::string name = reader.readString();
+
+    TableHeap table = readTableHeap(reader);
+
+    catalog.createTable(name, table.schema());
+
+    TableHeap &stored = catalog.getTable(name);
+
+    for (const auto &row : table.rows())
+    {
+      stored.insertRow(row);
+    }
+  }
+
+  return catalog;
+}

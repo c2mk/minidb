@@ -6,7 +6,7 @@ void Catalog::createTable(const std::string &name, Schema schema)
   if (tableExists(name))
     throw std::runtime_error("Table '" + name + "' already exists");
 
-  // second one first default constructs a TableHeap and then assignes TableHeap(std::move(schema))
+  // second one first default constructs a TableHeap and then assigns TableHeap(std::move(schema))
   tables_.emplace(name, TableHeap(std::move(schema)));
   // tables_[name] = TableHeap(std::move(schema));
 }
@@ -26,6 +26,19 @@ const TableHeap &Catalog::getTable(const std::string &name) const
   if (it == tables_.end())
     throw std::runtime_error("Table '" + name + "' does not exist.");
   return it->second;
+}
+
+std::vector<std::string> Catalog::tableNames() const
+{
+  std::vector<std::string> names;
+  names.reserve(tables_.size());
+
+  for (const auto &[name, table] : tables_)
+  {
+    names.push_back(name);
+  }
+
+  return names;
 }
 
 bool Catalog::tableExists(const std::string &name) const
